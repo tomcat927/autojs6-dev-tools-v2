@@ -1,0 +1,134 @@
+name: quick-build
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_ref:
+        description: Source ref to package (branch or tag name)
+        required: true
+        default: master
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  quick-build:
+    runs-on: windows-latest
+    env:
+      PRODUCT_NAME: AutoJS6 Visual Development Toolkit
+      PACKAGE_IDENTITY_NAME: space.terwer.autojs6devtools
+      PUBLISHER: CN=terwer
+      PUBLISHER_DISPLAY_NAME: terwer
+      APP_EXE_NAME: autojs6-dev-tools.exe
+    steps:
+      - name: Resolve build metadata
+        id: meta
+        shell: pwsh
+        run: |
+          $version = "0.1.1-test"
+          $name = "Test Package v$version"
+          $tag = "test-v$version"
+
+          Add-Content -LiteralPath $env:GITHUB_OUTPUT -Value "version=$version"
+          Add-Content -LiteralPath $env:GITHUB_OUTPUT -Value "release_tag=$tag"
+          Add-Content -LiteralPath $env:GITHUB_OUTPUT -Value "release_name=$name"
+
+      - name: Check out selected source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source_ref }}
+
+      - name: Set up .NET 8 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Set up MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Restore app project
+        run: dotnet restore App/App.csproj
+
+      - name: Install Inno Setup
+        shell: pwsh
+        run: choco install innosetup --no-progress --yes
+
+      - name: Apply release metadata
+        shell: pwsh
+        run: >
+          ./scripts/release/Set-AppReleaseMetadata.ps1
+          -Version "${{ steps.meta.outputs.version }}"
+          -ProductName "${env:PRODUCT_NAME}"
+          -PackageIdentityName "${env:PACKAGE_IDENTITY_NAME}"
+          -Publisher "${env:PUBLISHER}"
+          -PublisherDisplayName "${env:PUBLISHER_DISPLAY_NAME}"
+
+      - name: Build x64 portable ZIP
+        shell: pwsh
+        run: >
+          ./scripts/release/Build-PortablePackage.ps1
+          -ProjectPath "App/App.csproj"
+          -RuntimeIdentifier "win-x64"
+          -Version "${{ steps.meta.outputs.version }}"
+          -OutputRoot "artifacts"
+
+      - name: Build ARM64 portable ZIP
+        shell: pwsh
+        run: >
+          ./scripts/release/Build-PortablePackage.ps1
+          -ProjectPath "App/App.csproj"
+          -RuntimeIdentifier "win-arm64"
+          -Version "${{ steps.meta.outputs.version }}"
+          -OutputRoot "artifacts"
+
+      - name: Build x64 installer
+        shell: pwsh
+        run: >
+          ./scripts/release/Build-InnoInstaller.ps1
+          -ScriptPath "packaging/windows/autojs6-dev-tools.iss"
+          -RuntimeIdentifier "win-x64"
+          -Version "${{ steps.meta.outputs.version }}"
+          -SourceDirectory "artifacts/publish/win-x64"
+          -OutputDirectory "artifacts/release-assets"
+          -ArchitecturesAllowed "x64compatible"
+          -ArchitecturesInstallIn64BitMode "x64compatible"
+
+      - name: Build ARM64 installer
+        shell: pwsh
+        run: >
+          ./scripts/release/Build-InnoInstaller.ps1
+          -ScriptPath "packaging/windows/autojs6-dev-tools.iss"
+          -RuntimeIdentifier "win-arm64"
+          -Version "${{ steps.meta.outputs.version }}"
+          -SourceDirectory "artifacts/publish/win-arm64"
+          -OutputDirectory "artifacts/release-assets"
+          -ArchitecturesAllowed "arm64"
+          -ArchitecturesInstallIn64BitMode "arm64"
+
+      - name: Prepare output files
+        shell: pwsh
+        run: |
+          @(
+            "source_ref=${{ inputs.source_ref }}",
+            "version=${{ steps.meta.outputs.version }}",
+            "publish_to_release=false",
+            "prerelease=true",
+            "msix_status=temporarily_disabled"
+          ) | Set-Content -LiteralPath "artifacts/release-assets/BUILD-INFO.txt"
+
+          $hashLines = Get-ChildItem -LiteralPath "artifacts/release-assets" -File |
+            Sort-Object Name |
+            ForEach-Object {
+              $hash = (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+              "$hash *$($_.Name)"
+            }
+
+          Set-Content -LiteralPath "artifacts/release-assets/SHA256SUMS.txt" -Value $hashLines
+
+      - name: Upload build results to Actions artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-package-${{ steps.meta.outputs.version }}
+          path: artifacts/release-assets/*
+          if-no-files-found: error
