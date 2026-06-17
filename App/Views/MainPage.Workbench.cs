@@ -6,7 +6,9 @@ using Microsoft.UI.Xaml.Media;
 using System;
 using System.IO;
 using System.Threading.Tasks;
+using Windows.ApplicationModel.DataTransfer;
 using Windows.Graphics.Imaging;
+using Windows.Storage;
 
 namespace App.Views;
 
@@ -440,35 +442,80 @@ public sealed partial class MainPage
         var target = sender as FrameworkElement;
         try
         {
-            var picker = CreateImageFilePicker();
-            var file = await picker.PickSingleFileAsync();
-            if (file == null)
-            {
-                return;
-            }
+            var file = await PickImageFileAsync();
+            if (file == null) return;
 
-            SetStatus("正在载入本地图片...", StatusTone.Info);
-
-            var bytes = await File.ReadAllBytesAsync(file.Path);
-            using var stream = await file.OpenReadAsync();
-            var decoder = await BitmapDecoder.CreateAsync(stream);
-
-            DiscardExternalScreenshotPreviewSnapshot();
-            await LoadImageIntoCanvasAsync(
-                bytes,
-                (int)decoder.PixelWidth,
-                (int)decoder.PixelHeight,
-                fitToWindow: false,
-                currentCanvasSummary: $"当前画布：本地图片 {file.Name} · {decoder.PixelWidth}x{decoder.PixelHeight}");
-
-            _screenshotFilePath = file.Path;
-            ScreenshotSourceCurrent.IsChecked = true;
-
-            ShowActionTip($"已载入本地图片：{file.Name}", StatusTone.Success, target);
+            await LoadImageFromStorageFileAsync(file, target);
         }
         catch (Exception ex)
         {
             ShowActionTip($"载入本地图片失败：{ex.Message}", StatusTone.Error, target, "载入失败");
+        }
+    }
+
+    private async void CanvasHost_DragOver(object sender, DragEventArgs e)
+    {
+        e.AcceptedOperation = DataPackageOperation.Copy;
+        e.DragUIOverride.Caption = "松开以载入图片";
+    }
+
+    private async void CanvasHost_Drop(object sender, DragEventArgs e)
+    {
+        if (!e.DataView.Contains(StandardDataFormats.StorageItems)) return;
+
+        var items = await e.DataView.GetStorageItemsAsync();
+        if (items.Count == 0) return;
+
+        var file = items[0] as StorageFile;
+        if (file == null) return;
+
+        var ext = Path.GetExtension(file.Name).ToLowerInvariant();
+        if (ext is not ".png" and not ".jpg" and not ".jpeg" and not ".bmp" and not ".gif" and not ".tiff" and not ".tif" and not ".webp")
+        {
+            ShowActionTip("仅支持 PNG / JPG / BMP / GIF / TIFF / WebP 格式的图片文件", StatusTone.Warning, sender as FrameworkElement, "不支持的文件格式");
+            return;
+        }
+
+        try
+        {
+            SetStatus("正在载入拖放图片...", StatusTone.Info);
+            await LoadImageFromStorageFileAsync(file, sender as FrameworkElement);
+            ShowActionTip($"已载入拖放图片：{file.Name}", StatusTone.Success, sender as FrameworkElement);
+        }
+        catch (Exception ex)
+        {
+            ShowActionTip($"载入拖放图片失败：{ex.Message}", StatusTone.Error, sender as FrameworkElement, "载入失败");
+        }
+    }
+
+    private async Task<StorageFile?> PickImageFileAsync()
+    {
+        var picker = CreateImageFilePicker();
+        return await picker.PickSingleFileAsync();
+    }
+
+    private async Task LoadImageFromStorageFileAsync(StorageFile file, FrameworkElement? target)
+    {
+        SetStatus("正在载入本地图片...", StatusTone.Info);
+
+        var bytes = await File.ReadAllBytesAsync(file.Path);
+        using var stream = await file.OpenReadAsync();
+        var decoder = await BitmapDecoder.CreateAsync(stream);
+
+        DiscardExternalScreenshotPreviewSnapshot();
+        await LoadImageIntoCanvasAsync(
+            bytes,
+            (int)decoder.PixelWidth,
+            (int)decoder.PixelHeight,
+            fitToWindow: false,
+            currentCanvasSummary: $"当前画布：本地图片 {file.Name} · {decoder.PixelWidth}x{decoder.PixelHeight}");
+
+        _screenshotFilePath = file.Path;
+        ScreenshotSourceCurrent.IsChecked = true;
+
+        if (target != null)
+        {
+            ShowActionTip($"已载入本地图片：{file.Name}", StatusTone.Success, target);
         }
     }
 

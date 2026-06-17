@@ -274,7 +274,7 @@
                 </Border>
 
                 <Border Grid.Row="1" Style="{StaticResource WorkbenchCardBorderStyle}" Padding="0">
-                    <Grid>
+                    <Grid x:Name="CanvasHostGrid" AllowDrop="True" DragOver="CanvasHost_DragOver" Drop="CanvasHost_Drop">
                         <Border Margin="14"
                                 Background="{ThemeResource SystemControlBackgroundBaseLowBrush}"
                                 BorderBrush="{ThemeResource SystemControlForegroundBaseLowBrush}"
