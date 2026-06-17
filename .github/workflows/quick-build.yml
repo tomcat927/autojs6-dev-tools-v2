@@ -132,3 +132,22 @@ jobs:
           name: test-package-${{ steps.meta.outputs.version }}
           path: artifacts/release-assets/*
           if-no-files-found: error
+
+      - name: Upload to GitHub Release (dev-build)
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = "dev-build"
+          $name = "Dev Build ${{ steps.meta.outputs.version }}"
+          $target = "${{ inputs.source_ref }}"
+
+          gh release view $tag --json tagName > $null 2>&1
+          if ($LASTEXITCODE -ne 0) {
+            gh release create $tag --title "$name" --target $target --notes "Latest development build from $target" --prerelease
+          } else {
+            gh release delete $tag --yes --cleanup-tag
+            gh release create $tag --title "$name" --target $target --notes "Latest development build from $target" --prerelease
+          }
+
+          gh release upload $tag artifacts/release-assets/* --clobber
