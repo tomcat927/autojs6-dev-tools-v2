@@ -386,13 +386,22 @@
                                             Click="BrowseTemplateButton_Click"
                                             Style="{StaticResource WorkbenchSecondaryButtonStyle}" />
 
-                                    <TextBlock Grid.Row="1"
-                                               Grid.Column="1"
-                                               Grid.ColumnSpan="2"
-                                               x:Name="TemplateSourceSummaryText"
-                                               Text="当前裁剪：尚未创建区域"
-                                               Style="{StaticResource WorkbenchCaptionTextStyle}"
-                                               TextWrapping="WrapWholeWords" />
+                                    <Border x:Name="TemplateDropTarget"
+                                            Grid.Row="1"
+                                            Grid.Column="1"
+                                            Grid.ColumnSpan="2"
+                                            AllowDrop="True"
+                                            DragOver="TemplateSource_DragOver"
+                                            Drop="TemplateSource_Drop"
+                                            DragLeave="TemplateSource_DragLeave"
+                                            Padding="4,3"
+                                            CornerRadius="4"
+                                            Background="Transparent">
+                                        <TextBlock x:Name="TemplateSourceSummaryText"
+                                                   Text="当前裁剪：尚未创建区域"
+                                                   Style="{StaticResource WorkbenchCaptionTextStyle}"
+                                                   TextWrapping="WrapWholeWords" />
+                                    </Border>
 
                                     <TextBlock Grid.Row="2" Grid.Column="0" Text="截图" VerticalAlignment="Center" />
                                     <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal" Spacing="10">
@@ -411,13 +420,22 @@
                                             Click="BrowseScreenshotButton_Click"
                                             Style="{StaticResource WorkbenchSecondaryButtonStyle}" />
 
-                                    <TextBlock Grid.Row="3"
-                                               Grid.Column="1"
-                                               Grid.ColumnSpan="2"
-                                               x:Name="ScreenshotSourceSummaryText"
-                                               Text="当前画布：尚未加载截图"
-                                               Style="{StaticResource WorkbenchCaptionTextStyle}"
-                                               TextWrapping="WrapWholeWords" />
+                                    <Border x:Name="ScreenshotDropTarget"
+                                            Grid.Row="3"
+                                            Grid.Column="1"
+                                            Grid.ColumnSpan="2"
+                                            AllowDrop="True"
+                                            DragOver="ScreenshotSource_DragOver"
+                                            Drop="ScreenshotSource_Drop"
+                                            DragLeave="ScreenshotSource_DragLeave"
+                                            Padding="4,3"
+                                            CornerRadius="4"
+                                            Background="Transparent">
+                                        <TextBlock x:Name="ScreenshotSourceSummaryText"
+                                                   Text="当前画布：尚未加载截图"
+                                                   Style="{StaticResource WorkbenchCaptionTextStyle}"
+                                                   TextWrapping="WrapWholeWords" />
+                                    </Border>
                                 </Grid>
                             </StackPanel>
                         </Border>

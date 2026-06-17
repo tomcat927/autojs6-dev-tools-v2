@@ -598,6 +598,98 @@ public sealed partial class MainPage
             : MatchSearchScope.Region;
     }
 
+    private static readonly SolidColorBrush DropHighlightBrush = new(Windows.UI.Color.FromArgb(32, 30, 144, 255));
+
+    private void TemplateSource_DragOver(object sender, DragEventArgs e)
+    {
+        if (e.DataView.Contains(StandardDataFormats.StorageItems))
+        {
+            e.AcceptedOperation = DataPackageOperation.Copy;
+            e.DragUIOverride.Caption = "设为模板文件";
+            TemplateDropTarget.Background = DropHighlightBrush;
+        }
+    }
+
+    private void TemplateSource_DragLeave(object sender, DragEventArgs e)
+    {
+        TemplateDropTarget.Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent);
+    }
+
+    private async void TemplateSource_Drop(object sender, DragEventArgs e)
+    {
+        TemplateDropTarget.Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent);
+
+        if (!e.DataView.Contains(StandardDataFormats.StorageItems)) return;
+
+        var items = await e.DataView.GetStorageItemsAsync();
+        if (items.Count == 0) return;
+
+        var file = items[0] as StorageFile;
+        if (file == null) return;
+
+        var ext = Path.GetExtension(file.Name).ToLowerInvariant();
+        if (ext is not ".png" and not ".jpg" and not ".jpeg" and not ".bmp" and not ".gif" and not ".tiff" and not ".tif" and not ".webp")
+        {
+            ShowActionTip("仅支持 PNG / JPG / BMP / GIF / TIFF / WebP 格式的模板文件", StatusTone.Warning, TemplateDropTarget, "不支持的格式");
+            return;
+        }
+
+        if (TemplateSourceCrop != null && File.Exists(file.Path))
+        {
+            TemplateSourceFile.IsChecked = true;
+            _templateFilePath = file.Path;
+            InvalidateSuccessfulMatchContext(clearCanvasResults: true);
+            UpdateSourceSummaries();
+            UpdateButtonStates();
+            ShowActionTip($"已拖入模板文件：{file.Name}", StatusTone.Success, TemplateDropTarget, "模板已更新");
+        }
+    }
+
+    private void ScreenshotSource_DragOver(object sender, DragEventArgs e)
+    {
+        if (e.DataView.Contains(StandardDataFormats.StorageItems))
+        {
+            e.AcceptedOperation = DataPackageOperation.Copy;
+            e.DragUIOverride.Caption = "设为测试截图";
+            ScreenshotDropTarget.Background = DropHighlightBrush;
+        }
+    }
+
+    private void ScreenshotSource_DragLeave(object sender, DragEventArgs e)
+    {
+        ScreenshotDropTarget.Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent);
+    }
+
+    private async void ScreenshotSource_Drop(object sender, DragEventArgs e)
+    {
+        ScreenshotDropTarget.Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent);
+
+        if (!e.DataView.Contains(StandardDataFormats.StorageItems)) return;
+
+        var items = await e.DataView.GetStorageItemsAsync();
+        if (items.Count == 0) return;
+
+        var file = items[0] as StorageFile;
+        if (file == null) return;
+
+        var ext = Path.GetExtension(file.Name).ToLowerInvariant();
+        if (ext is not ".png" and not ".jpg" and not ".jpeg" and not ".bmp" and not ".gif" and not ".tiff" and not ".tif" and not ".webp")
+        {
+            ShowActionTip("仅支持 PNG / JPG / BMP / GIF / TIFF / WebP 格式的截图文件", StatusTone.Warning, ScreenshotDropTarget, "不支持的格式");
+            return;
+        }
+
+        if (File.Exists(file.Path))
+        {
+            ScreenshotSourceFile.IsChecked = true;
+            _screenshotFilePath = file.Path;
+            InvalidateSuccessfulMatchContext(clearCanvasResults: true);
+            UpdateSourceSummaries();
+            UpdateButtonStates();
+            ShowActionTip($"已拖入测试截图：{file.Name}", StatusTone.Success, ScreenshotDropTarget, "截图源已更新");
+        }
+    }
+
     private void SetStatus(string message, StatusTone tone)
     {
         if (StatusText == null || StatusPillBorder == null || StatusIcon == null)
