@@ -39,6 +39,32 @@ public class MainPageSmokeTests
             $"MainPage.xaml 缺少关键控件。文件：{xamlPath}");
     }
 
+    [TestMethod]
+    public void MultiColorRawArguments_ShouldParseFindModeToolFormat()
+    {
+        var request = ParseMultiColorRawArguments(
+            "\"#35ca1f\",[[1,11,\"#2cc71c\"],[0,27,\"#2fc623\"]],{region:[2181,558,16,63],threshold:[26]}");
+
+        AssertRequestProperty(request, "Mode", "FindInRegion");
+        AssertRequestProperty(request, "FirstColor", "#35ca1f");
+        AssertRequestProperty(request, "Threshold", 26);
+        AssertRegion(request, x: 2181, y: 558, width: 16, height: 63);
+        AssertOffsetsCount(request, 2);
+    }
+
+    [TestMethod]
+    public void MultiColorRawArguments_ShouldNormalizeX1Y1X2Y2Region()
+    {
+        var request = ParseMultiColorRawArguments(
+            "2300,300,\"#35ca1f\",[[1,11,\"#2cc71c\"]],{region:[2137,257,2339,362],threshold:16}");
+
+        AssertRequestProperty(request, "Mode", "DetectAtAnchor");
+        AssertRequestProperty(request, "AnchorX", 2300);
+        AssertRequestProperty(request, "AnchorY", 300);
+        AssertRegion(request, x: 2137, y: 257, width: 202, height: 105);
+        AssertOffsetsCount(request, 1);
+    }
+
     private static string ResolveBuiltAppAssemblyPath()
     {
         var solutionRoot = GetSolutionRoot();
@@ -86,5 +112,55 @@ public class MainPageSmokeTests
         }
 
         return 2;
+    }
+
+    private static object ParseMultiColorRawArguments(string rawArguments)
+    {
+        var appAssemblyPath = ResolveBuiltAppAssemblyPath();
+        var assembly = Assembly.LoadFrom(appAssemblyPath);
+        var mainPageType = assembly.GetType("App.Views.MainPage");
+        Assert.IsNotNull(mainPageType, $"未找到类型 App.Views.MainPage。程序集：{appAssemblyPath}");
+
+        var method = mainPageType!.GetMethod(
+            "ParseMultiColorRawArguments",
+            BindingFlags.NonPublic | BindingFlags.Static);
+        Assert.IsNotNull(method, "未找到 ParseMultiColorRawArguments 方法。");
+
+        try
+        {
+            var request = method!.Invoke(null, [rawArguments]);
+            Assert.IsNotNull(request, "解析结果不应为空。");
+            return request!;
+        }
+        catch (TargetInvocationException ex) when (ex.InnerException != null)
+        {
+            Assert.Fail($"解析多点颜色参数失败：{ex.InnerException.Message}");
+            throw;
+        }
+    }
+
+    private static void AssertRequestProperty(object request, string propertyName, object expected)
+    {
+        var property = request.GetType().GetProperty(propertyName);
+        Assert.IsNotNull(property, $"解析结果缺少属性：{propertyName}");
+        Assert.AreEqual(expected.ToString(), property!.GetValue(request)?.ToString(), propertyName);
+    }
+
+    private static void AssertRegion(object request, int x, int y, int width, int height)
+    {
+        var region = request.GetType().GetProperty("Region")?.GetValue(request);
+        Assert.IsNotNull(region, "解析结果应包含 region。");
+        AssertRequestProperty(region!, "X", x);
+        AssertRequestProperty(region!, "Y", y);
+        AssertRequestProperty(region!, "Width", width);
+        AssertRequestProperty(region!, "Height", height);
+    }
+
+    private static void AssertOffsetsCount(object request, int expectedCount)
+    {
+        var offsets = request.GetType().GetProperty("Offsets")?.GetValue(request);
+        Assert.IsNotNull(offsets, "解析结果应包含 offsets。");
+        var count = ((System.Collections.IEnumerable)offsets!).Cast<object>().Count();
+        Assert.AreEqual(expectedCount, count);
     }
 }

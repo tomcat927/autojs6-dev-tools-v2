@@ -2,10 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Text.Json;
 using System.Threading.Tasks;
 using Core.Models;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
 
 namespace App.Views;
 
@@ -18,8 +18,14 @@ public sealed partial class MainPage
         try
         {
             var request = ParseMultiColorRawArguments(MultiColorRawArgsTextBox.Text);
-            MultiColorAnchorXTextBox.Text = request.AnchorX.ToString();
-            MultiColorAnchorYTextBox.Text = request.AnchorY.ToString();
+            MultiColorFindModeCheckBox.IsChecked = request.Mode == MultiColorSearchMode.FindInRegion;
+            UpdateMultiColorModeUi();
+            MultiColorAnchorXTextBox.Text = request.Mode == MultiColorSearchMode.DetectAtAnchor
+                ? request.AnchorX.ToString()
+                : "0";
+            MultiColorAnchorYTextBox.Text = request.Mode == MultiColorSearchMode.DetectAtAnchor
+                ? request.AnchorY.ToString()
+                : "0";
             MultiColorFirstColorTextBox.Text = request.FirstColor;
             MultiColorOffsetsTextBox.Text = FormatOffsetsForJavaScript(request.Offsets);
             MultiColorThresholdTextBox.Text = request.Threshold.ToString();
@@ -111,6 +117,37 @@ public sealed partial class MainPage
         ShowActionTip("多点检测标记已清空", StatusTone.Info, sender as Microsoft.UI.Xaml.FrameworkElement);
     }
 
+    private void MultiColorFindModeCheckBox_Changed(object sender, RoutedEventArgs e)
+    {
+        UpdateMultiColorModeUi();
+    }
+
+    private void UpdateMultiColorModeUi()
+    {
+        if (MultiColorFindModeCheckBox == null ||
+            MultiColorAnchorXTextBox == null ||
+            MultiColorAnchorYTextBox == null ||
+            MultiColorRawArgsTextBox == null)
+        {
+            return;
+        }
+
+        var isFindMode = MultiColorFindModeCheckBox.IsChecked == true;
+        MultiColorAnchorXTextBox.IsEnabled = !isFindMode;
+        MultiColorAnchorYTextBox.IsEnabled = !isFindMode;
+        MultiColorAnchorXTextBox.Opacity = isFindMode ? 0.55 : 1;
+        MultiColorAnchorYTextBox.Opacity = isFindMode ? 0.55 : 1;
+        MultiColorRawArgsTextBox.PlaceholderText = isFindMode
+            ? "\"#35ca1f\",[[1,11,\"#2cc71c\"]],{region:[x1,y1,x2,y2],threshold:[26]}"
+            : "2300,300,\"#35ca1f\",[[1,11,\"#2cc71c\"]],{threshold:16}";
+
+        var hint = isFindMode
+            ? "多点找色会在区域内搜索首点，X/Y 不参与计算"
+            : "多点比色会在固定 X/Y 锚点检测颜色";
+        ToolTipService.SetToolTip(MultiColorAnchorXTextBox, hint);
+        ToolTipService.SetToolTip(MultiColorAnchorYTextBox, hint);
+    }
+
     private MultiColorDetectionRequest BuildMultiColorRequest()
     {
         var mode = MultiColorFindModeCheckBox.IsChecked == true
@@ -120,252 +157,16 @@ public sealed partial class MainPage
         return new MultiColorDetectionRequest
         {
             Mode = mode,
-            AnchorX = ParseRequiredInt(MultiColorAnchorXTextBox.Text, "X"),
-            AnchorY = ParseRequiredInt(MultiColorAnchorYTextBox.Text, "Y"),
+            AnchorX = mode == MultiColorSearchMode.DetectAtAnchor
+                ? ParseRequiredInt(MultiColorAnchorXTextBox.Text, "X")
+                : 0,
+            AnchorY = mode == MultiColorSearchMode.DetectAtAnchor
+                ? ParseRequiredInt(MultiColorAnchorYTextBox.Text, "Y")
+                : 0,
             FirstColor = NormalizeColorInput(MultiColorFirstColorTextBox.Text),
             Threshold = Math.Clamp(ParseRequiredInt(MultiColorThresholdTextBox.Text, "阈值"), 0, 255),
             Region = ParseOptionalRegion(MultiColorRegionTextBox.Text),
             Offsets = ParseMultiColorOffsets(MultiColorOffsetsTextBox.Text)
-        };
-    }
-
-    private static int ParseRequiredInt(string? value, string name)
-    {
-        if (!int.TryParse(value?.Trim(), out var number))
-        {
-            throw new FormatException($"{name} 必须是整数");
-        }
-
-        return number;
-    }
-
-    private static string NormalizeColorInput(string? value)
-    {
-        var color = value?.Trim();
-        if (string.IsNullOrWhiteSpace(color))
-        {
-            throw new FormatException("颜色不能为空");
-        }
-
-        return color.StartsWith("#") || color.StartsWith("0x", StringComparison.OrdinalIgnoreCase)
-            ? color
-            : "#" + color;
-    }
-
-    private static CropRegion? ParseOptionalRegion(string? value)
-    {
-        var text = value?.Trim();
-        if (string.IsNullOrWhiteSpace(text))
-        {
-            return null;
-        }
-
-        using var document = JsonDocument.Parse(text);
-        var root = document.RootElement;
-        if (root.ValueKind != JsonValueKind.Array || root.GetArrayLength() < 4)
-        {
-            throw new FormatException("区域格式应为 [x, y, w, h]");
-        }
-
-        return new CropRegion
-        {
-            X = root[0].GetInt32(),
-            Y = root[1].GetInt32(),
-            Width = root[2].GetInt32(),
-            Height = root[3].GetInt32()
-        };
-    }
-
-    private static IReadOnlyList<MultiColorOffset> ParseMultiColorOffsets(string? value)
-    {
-        var text = value?.Trim();
-        if (string.IsNullOrWhiteSpace(text))
-        {
-            return [];
-        }
-
-        using var document = JsonDocument.Parse(text);
-        if (document.RootElement.ValueKind != JsonValueKind.Array)
-        {
-            throw new FormatException("相对点格式应为 [[dx, dy, \"#RRGGBB\"], ...]");
-        }
-
-        var offsets = new List<MultiColorOffset>();
-        foreach (var item in document.RootElement.EnumerateArray())
-        {
-            if (item.ValueKind == JsonValueKind.Array)
-            {
-                if (item.GetArrayLength() < 3)
-                {
-                    throw new FormatException("相对点数组至少需要 dx、dy、color");
-                }
-
-                offsets.Add(new MultiColorOffset
-                {
-                    Dx = item[0].GetInt32(),
-                    Dy = item[1].GetInt32(),
-                    Color = NormalizeColorInput(item[2].GetString())
-                });
-                continue;
-            }
-
-            if (item.ValueKind == JsonValueKind.Object)
-            {
-                offsets.Add(new MultiColorOffset
-                {
-                    Dx = item.GetProperty("dx").GetInt32(),
-                    Dy = item.GetProperty("dy").GetInt32(),
-                    Color = NormalizeColorInput(item.GetProperty("color").GetString())
-                });
-                continue;
-            }
-
-            throw new FormatException("相对点仅支持数组或对象格式");
-        }
-
-        return offsets;
-    }
-
-    private static MultiColorDetectionRequest ParseMultiColorRawArguments(string? value)
-    {
-        var text = NormalizeRawMultiColorArguments(value);
-        if (string.IsNullOrWhiteSpace(text))
-        {
-            throw new FormatException("请先粘贴多点比色参数");
-        }
-
-        using var document = JsonDocument.Parse("[" + text + "]");
-        var root = document.RootElement;
-        if (root.ValueKind != JsonValueKind.Array || root.GetArrayLength() < 4)
-        {
-            throw new FormatException("参数格式应为 x,y,\"#RRGGBB\",[[dx,dy,\"#RRGGBB\"],...]");
-        }
-
-        var threshold = 16;
-        CropRegion? region = null;
-
-        if (root.GetArrayLength() >= 5)
-        {
-            var options = root[4];
-            if (options.ValueKind == JsonValueKind.Object)
-            {
-                if (options.TryGetProperty("threshold", out var thresholdElement))
-                {
-                    threshold = thresholdElement.GetInt32();
-                }
-
-                if (options.TryGetProperty("region", out var regionElement))
-                {
-                    region = ParseRegionElement(regionElement);
-                }
-            }
-            else if (options.ValueKind == JsonValueKind.Array)
-            {
-                region = ParseRegionElement(options);
-            }
-        }
-
-        if (root.GetArrayLength() >= 6)
-        {
-            threshold = root[5].GetInt32();
-        }
-
-        return new MultiColorDetectionRequest
-        {
-            Mode = MultiColorSearchMode.DetectAtAnchor,
-            AnchorX = root[0].GetInt32(),
-            AnchorY = root[1].GetInt32(),
-            FirstColor = NormalizeColorInput(root[2].GetString()),
-            Offsets = ParseMultiColorOffsets(root[3].GetRawText()),
-            Region = region,
-            Threshold = Math.Clamp(threshold, 0, 255)
-        };
-    }
-
-    private static string NormalizeRawMultiColorArguments(string? value)
-    {
-        var text = value?.Trim();
-        if (string.IsNullOrWhiteSpace(text))
-        {
-            return string.Empty;
-        }
-
-        var openParen = text.IndexOf('(');
-        var closeParen = text.LastIndexOf(')');
-        if (openParen >= 0 && closeParen > openParen)
-        {
-            text = text[(openParen + 1)..closeParen].Trim();
-        }
-
-        text = StripLeadingImageArgument(text);
-        return text.Trim().TrimEnd(';').Trim();
-    }
-
-    private static string StripLeadingImageArgument(string text)
-    {
-        var commaIndex = FindTopLevelComma(text);
-        if (commaIndex <= 0)
-        {
-            return text;
-        }
-
-        var firstToken = text[..commaIndex].Trim();
-        var isCoordinate = int.TryParse(firstToken, out _);
-        var isColor = firstToken.StartsWith("\"", StringComparison.Ordinal) ||
-                      firstToken.StartsWith("#", StringComparison.Ordinal) ||
-                      firstToken.StartsWith("0x", StringComparison.OrdinalIgnoreCase);
-
-        return isCoordinate || isColor ? text : text[(commaIndex + 1)..].Trim();
-    }
-
-    private static int FindTopLevelComma(string text)
-    {
-        var depth = 0;
-        var inString = false;
-        for (var i = 0; i < text.Length; i++)
-        {
-            var ch = text[i];
-            if (ch == '"' && (i == 0 || text[i - 1] != '\\'))
-            {
-                inString = !inString;
-                continue;
-            }
-
-            if (inString)
-            {
-                continue;
-            }
-
-            if (ch == '[' || ch == '{' || ch == '(')
-            {
-                depth++;
-            }
-            else if (ch == ']' || ch == '}' || ch == ')')
-            {
-                depth--;
-            }
-            else if (ch == ',' && depth == 0)
-            {
-                return i;
-            }
-        }
-
-        return -1;
-    }
-
-    private static CropRegion ParseRegionElement(JsonElement element)
-    {
-        if (element.ValueKind != JsonValueKind.Array || element.GetArrayLength() < 4)
-        {
-            throw new FormatException("region 应为 [x, y, w, h]");
-        }
-
-        return new CropRegion
-        {
-            X = element[0].GetInt32(),
-            Y = element[1].GetInt32(),
-            Width = element[2].GetInt32(),
-            Height = element[3].GetInt32()
         };
     }
 

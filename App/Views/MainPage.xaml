@@ -576,7 +576,9 @@
                                     <TextBlock Text="多点找色 / 比色" Style="{StaticResource WorkbenchSectionTitleTextStyle}" />
                                     <CheckBox x:Name="MultiColorFindModeCheckBox"
                                               Grid.Column="1"
-                                              Content="区域找色"
+                                              Content="多点找色"
+                                              Checked="MultiColorFindModeCheckBox_Changed"
+                                              Unchecked="MultiColorFindModeCheckBox_Changed"
                                               VerticalAlignment="Center" />
                                 </Grid>
 
@@ -598,7 +600,7 @@
                                             Style="{StaticResource WorkbenchSecondaryButtonStyle}" />
                                 </Grid>
 
-                                <Grid Grid.Row="2" ColumnSpacing="8">
+                                <Grid x:Name="MultiColorAnchorFieldsGrid" Grid.Row="2" ColumnSpacing="8">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*" />
                                         <ColumnDefinition Width="*" />
@@ -637,8 +639,8 @@
 
                                 <TextBox x:Name="MultiColorRegionTextBox"
                                          Grid.Row="5"
-                                         Header="区域 [x, y, w, h]"
-                                         PlaceholderText="留空则使用整图；固定比色时用于校验锚点是否在区域内"
+                                         Header="区域"
+                                         PlaceholderText="[x,y,w,h] 或 [x1,y1,x2,y2]，留空则整图"
                                          Style="{StaticResource WorkbenchMonoTextStyle}" />
 
                                 <Grid Grid.Row="6" ColumnSpacing="8">

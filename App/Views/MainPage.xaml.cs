@@ -69,6 +69,7 @@ public sealed partial class MainPage : Page
         UpdateUiTreeSummary();
         UpdateSelectedWidgetSummary();
         UpdateWorkbenchModeUi();
+        UpdateMultiColorModeUi();
         UpdateStagePresentation();
         UpdateButtonStates();
         SetStatus("就绪", StatusTone.Info);
