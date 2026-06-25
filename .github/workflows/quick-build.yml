@@ -79,23 +79,37 @@ jobs:
           -Publisher "${env:PUBLISHER}"
           -PublisherDisplayName "${env:PUBLISHER_DISPLAY_NAME}"
 
-      - name: Build x64 portable ZIP
+      - name: Publish x64 app for installer
         shell: pwsh
-        run: >
-          ./scripts/release/Build-PortablePackage.ps1
-          -ProjectPath "App/App.csproj"
-          -RuntimeIdentifier "win-x64"
-          -Version "${{ steps.meta.outputs.version }}"
-          -OutputRoot "artifacts"
+        run: |
+          $version = "${{ steps.meta.outputs.version }}"
+          $fourPartVersion = "$($version.TrimStart('v')).0"
+          $publishDirectory = "artifacts/publish/win-x64"
 
-      - name: Build ARM64 portable ZIP
-        shell: pwsh
-        run: >
-          ./scripts/release/Build-PortablePackage.ps1
-          -ProjectPath "App/App.csproj"
-          -RuntimeIdentifier "win-arm64"
-          -Version "${{ steps.meta.outputs.version }}"
-          -OutputRoot "artifacts"
+          New-Item -ItemType Directory -Path $publishDirectory -Force | Out-Null
+
+          dotnet publish "App/App.csproj" `
+            -c Release `
+            -r "win-x64" `
+            --self-contained true `
+            -p:WindowsPackageType=None `
+            -p:WindowsAppSDKSelfContained=true `
+            -p:PublishTrimmed=false `
+            -p:PublishReadyToRun=false `
+            -p:Version=$version `
+            -p:AssemblyVersion=$fourPartVersion `
+            -p:FileVersion=$fourPartVersion `
+            -p:InformationalVersion=$version `
+            -o $publishDirectory
+
+          if ($LASTEXITCODE -ne 0) {
+            throw "dotnet publish failed for win-x64"
+          }
+
+          $expectedExecutable = Join-Path $publishDirectory "${env:APP_EXE_NAME}"
+          if (-not (Test-Path -LiteralPath $expectedExecutable)) {
+            throw "Publish output is missing executable: $expectedExecutable"
+          }
 
       - name: Build x64 installer
         shell: pwsh
@@ -108,18 +122,6 @@ jobs:
           -OutputDirectory "artifacts/release-assets"
           -ArchitecturesAllowed "x64compatible"
           -ArchitecturesInstallIn64BitMode "x64compatible"
-
-      - name: Build ARM64 installer
-        shell: pwsh
-        run: >
-          ./scripts/release/Build-InnoInstaller.ps1
-          -ScriptPath "packaging/windows/autojs6-dev-tools.iss"
-          -RuntimeIdentifier "win-arm64"
-          -Version "${{ steps.meta.outputs.version }}"
-          -SourceDirectory "artifacts/publish/win-arm64"
-          -OutputDirectory "artifacts/release-assets"
-          -ArchitecturesAllowed "arm64"
-          -ArchitecturesInstallIn64BitMode "arm64"
 
       - name: Prepare output files
         shell: pwsh
