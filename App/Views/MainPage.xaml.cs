@@ -18,6 +18,7 @@ public sealed partial class MainPage : Page
 {
     private readonly IAdbService _adbService;
     private readonly IOpenCVMatchService _openCvMatchService;
+    private readonly IMultiColorDetectionService _multiColorDetectionService;
     private readonly ImageProcessor _imageProcessor;
 
     private AdbDevice? _currentDevice;
@@ -47,6 +48,7 @@ public sealed partial class MainPage : Page
 
         _adbService = new Infrastructure.Adb.AdbServiceImpl();
         _openCvMatchService = new OpenCVMatchServiceImpl();
+        _multiColorDetectionService = new MultiColorDetectionServiceImpl();
         _imageProcessor = new ImageProcessor();
 
         DeviceList.DeviceSelected += DeviceList_DeviceSelected;

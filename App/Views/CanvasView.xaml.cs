@@ -52,6 +52,7 @@ public sealed partial class CanvasView : Page
     // Overlay 层（上层）
     private List<WidgetNode> _widgetNodes = new();
     private List<MatchResult> _matchResults = new();
+    private MultiColorDetectionResult? _multiColorResult;
     private WidgetNode? _selectedWidget;
     private CropRegion? _cropRegion;
     private bool _showWidgetBounds = true;
@@ -156,6 +157,15 @@ public sealed partial class CanvasView : Page
     public void SetMatchResults(List<MatchResult> results)
     {
         _matchResults = results;
+        Canvas?.Invalidate();
+    }
+
+    /// <summary>
+    /// Sets the current multi-color detection overlay.
+    /// </summary>
+    public void SetMultiColorResult(MultiColorDetectionResult? result)
+    {
+        _multiColorResult = result;
         Canvas?.Invalidate();
     }
 
@@ -654,6 +664,11 @@ public sealed partial class CanvasView : Page
             DrawMatchResults(ds);
         }
 
+        if (_multiColorResult != null)
+        {
+            DrawMultiColorResult(ds);
+        }
+
         // 绘制裁剪区域框
         if (_showCropRegion && _cropRegion != null)
         {
@@ -738,6 +753,45 @@ public sealed partial class CanvasView : Page
             // 绘制置信度文本
             var text = $"{result.Confidence:F2} ({result.ClickX}, {result.ClickY})";
             ds.DrawText(text, result.X, result.Y - 20, colorWithAlpha);
+        }
+    }
+
+    private void DrawMultiColorResult(Microsoft.Graphics.Canvas.CanvasDrawingSession ds)
+    {
+        var result = _multiColorResult;
+        if (result == null)
+        {
+            return;
+        }
+
+        if (result.Region != null)
+        {
+            var region = result.Region;
+            ds.DrawRectangle(
+                region.X,
+                region.Y,
+                region.Width,
+                region.Height,
+                Windows.UI.Color.FromArgb(160, 0, 120, 215),
+                2.0f / _scale);
+        }
+
+        if (result.PointChecks.Count == 0)
+        {
+            return;
+        }
+
+        var anchor = result.PointChecks[0];
+        var anchorColor = result.IsMatch ? Microsoft.UI.Colors.LimeGreen : Microsoft.UI.Colors.OrangeRed;
+        ds.FillCircle(anchor.X, anchor.Y, 5.0f / _scale, anchorColor);
+        ds.DrawText($"A ({anchor.X},{anchor.Y})", anchor.X + 7.0f / _scale, anchor.Y - 18.0f / _scale, anchorColor);
+
+        foreach (var point in result.PointChecks.Skip(1))
+        {
+            var color = point.IsMatch ? Microsoft.UI.Colors.LimeGreen : Microsoft.UI.Colors.Red;
+            ds.DrawLine(anchor.X, anchor.Y, point.X, point.Y, Windows.UI.Color.FromArgb(120, color.R, color.G, color.B), 1.0f / _scale);
+            ds.FillCircle(point.X, point.Y, 4.0f / _scale, color);
+            ds.DrawText(point.Label, point.X + 6.0f / _scale, point.Y - 14.0f / _scale, color);
         }
     }
 

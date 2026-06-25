@@ -350,6 +350,7 @@
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
 
                         <Border Grid.Row="0" Style="{StaticResource WorkbenchCardBorderStyle}" Padding="10" Margin="0,0,0,10">
@@ -551,6 +552,107 @@
                                             Click="ViewCodeButton_Click"
                                             Style="{StaticResource WorkbenchSecondaryButtonStyle}" />
                                 </Grid>
+                            </Grid>
+                        </Border>
+
+                        <Border Grid.Row="2" Style="{StaticResource WorkbenchCardBorderStyle}" Padding="10" Margin="0,10,0,0">
+                            <Grid RowSpacing="8">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+
+                                <Grid Grid.Row="0" ColumnSpacing="8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="多点找色 / 比色" Style="{StaticResource WorkbenchSectionTitleTextStyle}" />
+                                    <CheckBox x:Name="MultiColorFindModeCheckBox"
+                                              Grid.Column="1"
+                                              Content="区域找色"
+                                              VerticalAlignment="Center" />
+                                </Grid>
+
+                                <Grid Grid.Row="1" ColumnSpacing="8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox x:Name="MultiColorAnchorXTextBox"
+                                             Header="X"
+                                             Text="0"
+                                             InputScope="Number" />
+                                    <TextBox x:Name="MultiColorAnchorYTextBox"
+                                             Grid.Column="1"
+                                             Header="Y"
+                                             Text="0"
+                                             InputScope="Number" />
+                                    <TextBox x:Name="MultiColorThresholdTextBox"
+                                             Grid.Column="2"
+                                             Header="阈值"
+                                             Text="16"
+                                             InputScope="Number" />
+                                </Grid>
+
+                                <TextBox x:Name="MultiColorFirstColorTextBox"
+                                         Grid.Row="2"
+                                         Header="首点颜色"
+                                         Text="#000000"
+                                         Style="{StaticResource WorkbenchMonoTextStyle}" />
+
+                                <TextBox x:Name="MultiColorOffsetsTextBox"
+                                         Grid.Row="3"
+                                         Header="相对点"
+                                         Text="[[4, -8, &quot;#000000&quot;]]"
+                                         AcceptsReturn="True"
+                                         Height="86"
+                                         TextWrapping="Wrap"
+                                         Style="{StaticResource WorkbenchMonoTextStyle}" />
+
+                                <TextBox x:Name="MultiColorRegionTextBox"
+                                         Grid.Row="4"
+                                         Header="区域 [x, y, w, h]"
+                                         PlaceholderText="留空则使用整图；固定比色时用于校验锚点是否在区域内"
+                                         Style="{StaticResource WorkbenchMonoTextStyle}" />
+
+                                <Grid Grid.Row="5" ColumnSpacing="8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <Button x:Name="TestMultiColorButton"
+                                            Grid.Column="0"
+                                            Content="测试"
+                                            Click="TestMultiColorButton_Click"
+                                            Style="{StaticResource WorkbenchPrimaryButtonStyle}" />
+                                    <Button x:Name="GenerateMultiColorCodeButton"
+                                            Grid.Column="1"
+                                            Content="生成代码"
+                                            Click="GenerateMultiColorCodeButton_Click"
+                                            Style="{StaticResource WorkbenchSecondaryButtonStyle}" />
+                                    <Button x:Name="ClearMultiColorButton"
+                                            Grid.Column="2"
+                                            Content="清空"
+                                            Click="ClearMultiColorButton_Click"
+                                            Style="{StaticResource WorkbenchSecondaryButtonStyle}" />
+                                </Grid>
+
+                                <TextBox x:Name="MultiColorResultTextBox"
+                                         Grid.Row="6"
+                                         Text="尚未测试"
+                                         IsReadOnly="True"
+                                         AcceptsReturn="True"
+                                         Height="112"
+                                         TextWrapping="Wrap"
+                                         Style="{StaticResource WorkbenchMonoTextStyle}" />
                             </Grid>
                         </Border>
                     </Grid>

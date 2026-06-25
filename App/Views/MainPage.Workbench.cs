@@ -103,6 +103,9 @@ public sealed partial class MainPage
             DumpUiStageButton == null ||
             WidgetBoundsCheckBox == null ||
             TestMatchButton == null ||
+            TestMultiColorButton == null ||
+            GenerateMultiColorCodeButton == null ||
+            ClearMultiColorButton == null ||
             SaveTemplateButton == null ||
             GenerateCodeButton == null ||
             ViewCodeRightButton == null ||
@@ -154,6 +157,9 @@ public sealed partial class MainPage
         ScreenshotBrowseButton.IsEnabled = ScreenshotSourceFile.IsChecked == true;
 
         TestMatchButton.IsEnabled = isImageMode && hasTemplateSource && hasScreenshotSource;
+        TestMultiColorButton.IsEnabled = isImageMode && hasScreenshotSource;
+        GenerateMultiColorCodeButton.IsEnabled = isImageMode && hasScreenshotSource;
+        ClearMultiColorButton.IsEnabled = isImageMode;
         SaveTemplateButton.IsEnabled = isImageMode && hasTemplateSource;
         GenerateCodeButton.IsEnabled = canGenerateCode;
         ViewCodeRightButton.IsEnabled = hasGeneratedCode;
@@ -293,6 +299,7 @@ public sealed partial class MainPage
     {
         Canvas.SetWidgetNodes([]);
         Canvas.SetMatchResults([]);
+        Canvas.SetMultiColorResult(null);
         Canvas.SetSelectedWidget(null);
         Canvas.SetCropRegion(null);
         Canvas.DisableCroppingMode();
@@ -335,6 +342,7 @@ public sealed partial class MainPage
     {
         Canvas.SetWidgetNodes([]);
         Canvas.SetMatchResults([]);
+        Canvas.SetMultiColorResult(null);
         Canvas.SetSelectedWidget(null);
         Canvas.SetCropRegion(null);
         Canvas.DisableCroppingMode();
