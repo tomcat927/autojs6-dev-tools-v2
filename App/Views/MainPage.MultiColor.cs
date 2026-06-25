@@ -11,6 +11,32 @@ namespace App.Views;
 
 public sealed partial class MainPage
 {
+    private void ParseMultiColorArgsButton_Click(object sender, RoutedEventArgs e)
+    {
+        var target = sender as Microsoft.UI.Xaml.FrameworkElement;
+
+        try
+        {
+            var request = ParseMultiColorRawArguments(MultiColorRawArgsTextBox.Text);
+            MultiColorAnchorXTextBox.Text = request.AnchorX.ToString();
+            MultiColorAnchorYTextBox.Text = request.AnchorY.ToString();
+            MultiColorFirstColorTextBox.Text = request.FirstColor;
+            MultiColorOffsetsTextBox.Text = FormatOffsetsForJavaScript(request.Offsets);
+            MultiColorThresholdTextBox.Text = request.Threshold.ToString();
+            MultiColorRegionTextBox.Text = request.Region == null
+                ? string.Empty
+                : $"[{request.Region.X}, {request.Region.Y}, {request.Region.Width}, {request.Region.Height}]";
+
+            Canvas.SetMultiColorResult(null);
+            MultiColorResultTextBox.Text = "参数已解析，可以直接测试";
+            ShowActionTip("多点比色参数已填充", StatusTone.Success, target, "解析成功");
+        }
+        catch (Exception ex)
+        {
+            ShowActionTip($"解析失败：{ex.Message}", StatusTone.Error, target, "解析失败");
+        }
+    }
+
     private async void TestMultiColorButton_Click(object sender, RoutedEventArgs e)
     {
         var target = sender as Microsoft.UI.Xaml.FrameworkElement;
@@ -198,6 +224,149 @@ public sealed partial class MainPage
         }
 
         return offsets;
+    }
+
+    private static MultiColorDetectionRequest ParseMultiColorRawArguments(string? value)
+    {
+        var text = NormalizeRawMultiColorArguments(value);
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            throw new FormatException("请先粘贴多点比色参数");
+        }
+
+        using var document = JsonDocument.Parse("[" + text + "]");
+        var root = document.RootElement;
+        if (root.ValueKind != JsonValueKind.Array || root.GetArrayLength() < 4)
+        {
+            throw new FormatException("参数格式应为 x,y,\"#RRGGBB\",[[dx,dy,\"#RRGGBB\"],...]");
+        }
+
+        var threshold = 16;
+        CropRegion? region = null;
+
+        if (root.GetArrayLength() >= 5)
+        {
+            var options = root[4];
+            if (options.ValueKind == JsonValueKind.Object)
+            {
+                if (options.TryGetProperty("threshold", out var thresholdElement))
+                {
+                    threshold = thresholdElement.GetInt32();
+                }
+
+                if (options.TryGetProperty("region", out var regionElement))
+                {
+                    region = ParseRegionElement(regionElement);
+                }
+            }
+            else if (options.ValueKind == JsonValueKind.Array)
+            {
+                region = ParseRegionElement(options);
+            }
+        }
+
+        if (root.GetArrayLength() >= 6)
+        {
+            threshold = root[5].GetInt32();
+        }
+
+        return new MultiColorDetectionRequest
+        {
+            Mode = MultiColorSearchMode.DetectAtAnchor,
+            AnchorX = root[0].GetInt32(),
+            AnchorY = root[1].GetInt32(),
+            FirstColor = NormalizeColorInput(root[2].GetString()),
+            Offsets = ParseMultiColorOffsets(root[3].GetRawText()),
+            Region = region,
+            Threshold = Math.Clamp(threshold, 0, 255)
+        };
+    }
+
+    private static string NormalizeRawMultiColorArguments(string? value)
+    {
+        var text = value?.Trim();
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return string.Empty;
+        }
+
+        var openParen = text.IndexOf('(');
+        var closeParen = text.LastIndexOf(')');
+        if (openParen >= 0 && closeParen > openParen)
+        {
+            text = text[(openParen + 1)..closeParen].Trim();
+        }
+
+        text = StripLeadingImageArgument(text);
+        return text.Trim().TrimEnd(';').Trim();
+    }
+
+    private static string StripLeadingImageArgument(string text)
+    {
+        var commaIndex = FindTopLevelComma(text);
+        if (commaIndex <= 0)
+        {
+            return text;
+        }
+
+        var firstToken = text[..commaIndex].Trim();
+        var isCoordinate = int.TryParse(firstToken, out _);
+        var isColor = firstToken.StartsWith("\"", StringComparison.Ordinal) ||
+                      firstToken.StartsWith("#", StringComparison.Ordinal) ||
+                      firstToken.StartsWith("0x", StringComparison.OrdinalIgnoreCase);
+
+        return isCoordinate || isColor ? text : text[(commaIndex + 1)..].Trim();
+    }
+
+    private static int FindTopLevelComma(string text)
+    {
+        var depth = 0;
+        var inString = false;
+        for (var i = 0; i < text.Length; i++)
+        {
+            var ch = text[i];
+            if (ch == '"' && (i == 0 || text[i - 1] != '\\'))
+            {
+                inString = !inString;
+                continue;
+            }
+
+            if (inString)
+            {
+                continue;
+            }
+
+            if (ch == '[' || ch == '{' || ch == '(')
+            {
+                depth++;
+            }
+            else if (ch == ']' || ch == '}' || ch == ')')
+            {
+                depth--;
+            }
+            else if (ch == ',' && depth == 0)
+            {
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
+    private static CropRegion ParseRegionElement(JsonElement element)
+    {
+        if (element.ValueKind != JsonValueKind.Array || element.GetArrayLength() < 4)
+        {
+            throw new FormatException("region 应为 [x, y, w, h]");
+        }
+
+        return new CropRegion
+        {
+            X = element[0].GetInt32(),
+            Y = element[1].GetInt32(),
+            Width = element[2].GetInt32(),
+            Height = element[3].GetInt32()
+        };
     }
 
     private static string BuildMultiColorSummary(MultiColorDetectionResult result)

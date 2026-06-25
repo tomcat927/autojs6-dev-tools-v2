@@ -565,6 +565,7 @@
                                     <RowDefinition Height="Auto" />
                                     <RowDefinition Height="Auto" />
                                     <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
                                 </Grid.RowDefinitions>
 
                                 <Grid Grid.Row="0" ColumnSpacing="8">
@@ -580,6 +581,24 @@
                                 </Grid>
 
                                 <Grid Grid.Row="1" ColumnSpacing="8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox x:Name="MultiColorRawArgsTextBox"
+                                             Grid.Column="0"
+                                             Header="粘贴参数"
+                                             PlaceholderText="2300,300,&quot;#35ca1f&quot;,[[1,11,&quot;#2cc71c&quot;],...]"
+                                             Style="{StaticResource WorkbenchMonoTextStyle}" />
+                                    <Button x:Name="ParseMultiColorArgsButton"
+                                            Grid.Column="1"
+                                            Content="解析"
+                                            Click="ParseMultiColorArgsButton_Click"
+                                            VerticalAlignment="Bottom"
+                                            Style="{StaticResource WorkbenchSecondaryButtonStyle}" />
+                                </Grid>
+
+                                <Grid Grid.Row="2" ColumnSpacing="8">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*" />
                                         <ColumnDefinition Width="*" />
@@ -602,13 +621,13 @@
                                 </Grid>
 
                                 <TextBox x:Name="MultiColorFirstColorTextBox"
-                                         Grid.Row="2"
+                                         Grid.Row="3"
                                          Header="首点颜色"
                                          Text="#000000"
                                          Style="{StaticResource WorkbenchMonoTextStyle}" />
 
                                 <TextBox x:Name="MultiColorOffsetsTextBox"
-                                         Grid.Row="3"
+                                         Grid.Row="4"
                                          Header="相对点"
                                          Text="[[4, -8, &quot;#000000&quot;]]"
                                          AcceptsReturn="True"
@@ -617,12 +636,12 @@
                                          Style="{StaticResource WorkbenchMonoTextStyle}" />
 
                                 <TextBox x:Name="MultiColorRegionTextBox"
-                                         Grid.Row="4"
+                                         Grid.Row="5"
                                          Header="区域 [x, y, w, h]"
                                          PlaceholderText="留空则使用整图；固定比色时用于校验锚点是否在区域内"
                                          Style="{StaticResource WorkbenchMonoTextStyle}" />
 
-                                <Grid Grid.Row="5" ColumnSpacing="8">
+                                <Grid Grid.Row="6" ColumnSpacing="8">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*" />
                                         <ColumnDefinition Width="*" />
@@ -646,7 +665,7 @@
                                 </Grid>
 
                                 <TextBox x:Name="MultiColorResultTextBox"
-                                         Grid.Row="6"
+                                         Grid.Row="7"
                                          Text="尚未测试"
                                          IsReadOnly="True"
                                          AcceptsReturn="True"

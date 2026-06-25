@@ -104,6 +104,7 @@ public sealed partial class MainPage
             WidgetBoundsCheckBox == null ||
             TestMatchButton == null ||
             TestMultiColorButton == null ||
+            ParseMultiColorArgsButton == null ||
             GenerateMultiColorCodeButton == null ||
             ClearMultiColorButton == null ||
             SaveTemplateButton == null ||
@@ -158,6 +159,7 @@ public sealed partial class MainPage
 
         TestMatchButton.IsEnabled = isImageMode && hasTemplateSource && hasScreenshotSource;
         TestMultiColorButton.IsEnabled = isImageMode && hasScreenshotSource;
+        ParseMultiColorArgsButton.IsEnabled = isImageMode;
         GenerateMultiColorCodeButton.IsEnabled = isImageMode && hasScreenshotSource;
         ClearMultiColorButton.IsEnabled = isImageMode;
         SaveTemplateButton.IsEnabled = isImageMode && hasTemplateSource;
