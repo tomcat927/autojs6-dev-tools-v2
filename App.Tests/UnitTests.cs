@@ -34,7 +34,10 @@ public class MainPageSmokeTests
                 "DeviceList",
                 "Canvas",
                 "CaptureButton",
-                "MatchSearchRegionTextBox"
+                "MatchSearchRegionTextBox",
+                "DevicePaneColumn",
+                "CollapseDevicePaneButton",
+                "ExpandDevicePaneButton"
             },
             nameAttributes.ToList(),
             $"MainPage.xaml 缺少关键控件。文件：{xamlPath}");

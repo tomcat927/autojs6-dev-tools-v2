@@ -168,12 +168,45 @@
 
         <Grid Grid.Row="1" Margin="16,0,16,12" ColumnSpacing="12">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="220" />
+                <ColumnDefinition x:Name="DevicePaneColumn" Width="220" />
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="336" />
             </Grid.ColumnDefinitions>
 
-            <local:AdbDeviceListView x:Name="DeviceList" Grid.Column="0" />
+            <Grid Grid.Column="0">
+                <local:AdbDeviceListView x:Name="DeviceList" />
+                <Button x:Name="CollapseDevicePaneButton"
+                        Width="32"
+                        Height="32"
+                        MinWidth="32"
+                        Padding="0"
+                        HorizontalAlignment="Right"
+                        VerticalAlignment="Top"
+                        Margin="0,8,8,0"
+                        Click="CollapseDevicePaneButton_Click"
+                        ToolTipService.ToolTip="收起设备列表"
+                        Style="{StaticResource WorkbenchSecondaryButtonStyle}">
+                    <FontIcon Glyph="&#xE76B;" FontSize="14" />
+                </Button>
+
+                <Border x:Name="DevicePaneCollapsedRail"
+                        Visibility="Collapsed"
+                        Style="{StaticResource WorkbenchCardBorderStyle}"
+                        Padding="4">
+                    <Button x:Name="ExpandDevicePaneButton"
+                            Width="34"
+                            Height="34"
+                            MinWidth="34"
+                            Padding="0"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Top"
+                            Click="ExpandDevicePaneButton_Click"
+                            ToolTipService.ToolTip="展开设备列表"
+                            Style="{StaticResource WorkbenchSecondaryButtonStyle}">
+                        <FontIcon Glyph="&#xE76C;" FontSize="14" />
+                    </Button>
+                </Border>
+            </Grid>
 
             <Grid Grid.Column="1" RowSpacing="8">
                 <Grid.RowDefinitions>

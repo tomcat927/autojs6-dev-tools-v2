@@ -69,6 +69,7 @@ public sealed partial class MainPage : Page
         UpdateUiTreeSummary();
         UpdateSelectedWidgetSummary();
         UpdateWorkbenchModeUi();
+        UpdateDevicePaneUi();
         UpdateMatchSearchRegionUi();
         UpdateMultiColorModeUi();
         UpdateStagePresentation();
