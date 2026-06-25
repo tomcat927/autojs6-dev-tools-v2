@@ -1,6 +1,9 @@
 name: quick-build
 
 on:
+  push:
+    branches:
+      - master
   workflow_dispatch:
     inputs:
       source_ref:
@@ -8,6 +11,10 @@ on:
         required: true
         default: master
         type: string
+
+concurrency:
+  group: quick-build-dev-build
+  cancel-in-progress: true
 
 permissions:
   contents: write
@@ -25,19 +32,27 @@ jobs:
       - name: Resolve build metadata
         id: meta
         shell: pwsh
+        env:
+          SOURCE_REF: ${{ github.event_name == 'workflow_dispatch' && inputs.source_ref || github.ref_name }}
         run: |
           $version = "0.1.1"
           $name = "Test Package v$version"
           $tag = "test-v$version"
+          $sourceRef = "${env:SOURCE_REF}".Trim()
+
+          if ([string]::IsNullOrWhiteSpace($sourceRef)) {
+            throw "Source ref is empty."
+          }
 
           Add-Content -LiteralPath $env:GITHUB_OUTPUT -Value "version=$version"
           Add-Content -LiteralPath $env:GITHUB_OUTPUT -Value "release_tag=$tag"
           Add-Content -LiteralPath $env:GITHUB_OUTPUT -Value "release_name=$name"
+          Add-Content -LiteralPath $env:GITHUB_OUTPUT -Value "source_ref=$sourceRef"
 
       - name: Check out selected source
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.source_ref }}
+          ref: ${{ steps.meta.outputs.source_ref }}
 
       - name: Set up .NET 8 SDK
         uses: actions/setup-dotnet@v4
@@ -110,7 +125,7 @@ jobs:
         shell: pwsh
         run: |
           @(
-            "source_ref=${{ inputs.source_ref }}",
+            "source_ref=${{ steps.meta.outputs.source_ref }}",
             "version=${{ steps.meta.outputs.version }}",
             "publish_to_release=false",
             "prerelease=true",
@@ -140,7 +155,7 @@ jobs:
         run: |
           $tag = "dev-build"
           $name = "Dev Build ${{ steps.meta.outputs.version }}"
-          $target = "${{ inputs.source_ref }}"
+          $target = "${{ steps.meta.outputs.source_ref }}"
 
           gh release view $tag --json tagName > $null 2>&1
           if ($LASTEXITCODE -ne 0) {
