@@ -330,6 +330,11 @@ public sealed partial class MainPage
             MatchSummaryText.Text = "匹配：-";
         }
 
+        if (MatchSearchRegionTextBox != null)
+        {
+            MatchSearchRegionTextBox.Text = string.Empty;
+        }
+
         if (clearGeneratedCode)
         {
             _latestGeneratedCode = string.Empty;
@@ -378,6 +383,11 @@ public sealed partial class MainPage
         if (FullImageSearchCheckBox != null)
         {
             FullImageSearchCheckBox.IsChecked = false;
+        }
+
+        if (MatchSearchRegionTextBox != null)
+        {
+            MatchSearchRegionTextBox.Text = string.Empty;
         }
 
         if (ThresholdSlider != null)
@@ -606,6 +616,28 @@ public sealed partial class MainPage
         return FullImageSearchCheckBox?.IsChecked == true
             ? MatchSearchScope.FullImage
             : MatchSearchScope.Region;
+    }
+
+    private void FullImageSearchCheckBox_Changed(object sender, RoutedEventArgs e)
+    {
+        UpdateMatchSearchRegionUi();
+    }
+
+    private void UpdateMatchSearchRegionUi()
+    {
+        if (FullImageSearchCheckBox == null || MatchSearchRegionTextBox == null)
+        {
+            return;
+        }
+
+        var isFullImageSearch = FullImageSearchCheckBox.IsChecked == true;
+        MatchSearchRegionTextBox.IsEnabled = !isFullImageSearch;
+        MatchSearchRegionTextBox.Opacity = isFullImageSearch ? 0.55 : 1;
+        ToolTipService.SetToolTip(
+            MatchSearchRegionTextBox,
+            isFullImageSearch
+                ? "已启用全图搜索，搜索区域会被忽略"
+                : "留空时使用当前裁剪区域；加载外部截图时留空则全图搜索");
     }
 
     private static readonly SolidColorBrush DropHighlightBrush = new(Windows.UI.Color.FromArgb(32, 30, 144, 255));

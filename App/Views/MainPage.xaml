@@ -451,6 +451,7 @@
                                         <RowDefinition Height="Auto" />
                                         <RowDefinition Height="Auto" />
                                         <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
                                     </Grid.RowDefinitions>
 
                                 <TextBlock Grid.Row="0" Text="操作" Style="{StaticResource WorkbenchSectionTitleTextStyle}" />
@@ -493,14 +494,22 @@
                                                HorizontalAlignment="Right" />
                                 </Grid>
 
-                                <Grid Grid.Row="3" ColumnSpacing="8">
+                                <TextBox x:Name="MatchSearchRegionTextBox"
+                                         Grid.Row="3"
+                                         Header="搜索区域"
+                                         PlaceholderText="[x,y,w,h] 或 [x1,y1,x2,y2]，留空则使用当前裁剪区域"
+                                         Style="{StaticResource WorkbenchMonoTextStyle}" />
+
+                                <Grid Grid.Row="4" ColumnSpacing="8">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*" />
                                         <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
                                     <CheckBox x:Name="FullImageSearchCheckBox"
                                               Grid.Column="0"
-                                              Content="全图搜索（默认使用区域搜索）"
+                                              Content="全图搜索（忽略搜索区域）"
+                                              Checked="FullImageSearchCheckBox_Changed"
+                                              Unchecked="FullImageSearchCheckBox_Changed"
                                               VerticalAlignment="Center" />
                                     <Button x:Name="TestMatchButton"
                                             Grid.Column="1"
@@ -509,7 +518,7 @@
                                             Style="{StaticResource WorkbenchPrimaryButtonStyle}" />
                                 </Grid>
 
-                                <Grid Grid.Row="4" ColumnSpacing="8">
+                                <Grid Grid.Row="5" ColumnSpacing="8">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*" />
                                         <ColumnDefinition Width="Auto" />
@@ -527,10 +536,10 @@
                                 </Grid>
 
                                 <TextBox x:Name="TemplateNameTextBox"
-                                         Grid.Row="5"
+                                         Grid.Row="6"
                                          PlaceholderText="模板名（代码文件名优先取这里，留空则跟模板名）" />
 
-                                <Grid Grid.Row="6" ColumnSpacing="8">
+                                <Grid Grid.Row="7" ColumnSpacing="8">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*" />
                                         <ColumnDefinition Width="*" />

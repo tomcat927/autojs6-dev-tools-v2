@@ -33,7 +33,8 @@ public class MainPageSmokeTests
                 "UiModeButton",
                 "DeviceList",
                 "Canvas",
-                "CaptureButton"
+                "CaptureButton",
+                "MatchSearchRegionTextBox"
             },
             nameAttributes.ToList(),
             $"MainPage.xaml 缺少关键控件。文件：{xamlPath}");
@@ -63,6 +64,15 @@ public class MainPageSmokeTests
         AssertRequestProperty(request, "AnchorY", 300);
         AssertRegion(request, x: 2137, y: 257, width: 202, height: 105);
         AssertOffsetsCount(request, 1);
+    }
+
+    [TestMethod]
+    public void MatchSearchRegionInput_ShouldNormalizeX1Y1X2Y2Region()
+    {
+        var region = ParseOptionalRegion("2137,257,2339,362");
+
+        Assert.IsNotNull(region);
+        AssertRegionCoordinates(region!, x: 2137, y: 257, width: 202, height: 105);
     }
 
     private static string ResolveBuiltAppAssemblyPath()
@@ -139,6 +149,29 @@ public class MainPageSmokeTests
         }
     }
 
+    private static object? ParseOptionalRegion(string rawRegion)
+    {
+        var appAssemblyPath = ResolveBuiltAppAssemblyPath();
+        var assembly = Assembly.LoadFrom(appAssemblyPath);
+        var mainPageType = assembly.GetType("App.Views.MainPage");
+        Assert.IsNotNull(mainPageType, $"未找到类型 App.Views.MainPage。程序集：{appAssemblyPath}");
+
+        var method = mainPageType!.GetMethod(
+            "ParseOptionalRegion",
+            BindingFlags.NonPublic | BindingFlags.Static);
+        Assert.IsNotNull(method, "未找到 ParseOptionalRegion 方法。");
+
+        try
+        {
+            return method!.Invoke(null, [rawRegion]);
+        }
+        catch (TargetInvocationException ex) when (ex.InnerException != null)
+        {
+            Assert.Fail($"解析搜索区域失败：{ex.InnerException.Message}");
+            throw;
+        }
+    }
+
     private static void AssertRequestProperty(object request, string propertyName, object expected)
     {
         var property = request.GetType().GetProperty(propertyName);
@@ -150,10 +183,15 @@ public class MainPageSmokeTests
     {
         var region = request.GetType().GetProperty("Region")?.GetValue(request);
         Assert.IsNotNull(region, "解析结果应包含 region。");
-        AssertRequestProperty(region!, "X", x);
-        AssertRequestProperty(region!, "Y", y);
-        AssertRequestProperty(region!, "Width", width);
-        AssertRequestProperty(region!, "Height", height);
+        AssertRegionCoordinates(region!, x, y, width, height);
+    }
+
+    private static void AssertRegionCoordinates(object region, int x, int y, int width, int height)
+    {
+        AssertRequestProperty(region, "X", x);
+        AssertRequestProperty(region, "Y", y);
+        AssertRequestProperty(region, "Width", width);
+        AssertRequestProperty(region, "Height", height);
     }
 
     private static void AssertOffsetsCount(object request, int expectedCount)

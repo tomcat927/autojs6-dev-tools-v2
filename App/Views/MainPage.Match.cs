@@ -147,7 +147,18 @@ public sealed partial class MainPage
 
     private CropRegion? BuildMatchSearchRegion(MatchSearchScope searchScope, bool isExternalScreenshot)
     {
-        if (searchScope == MatchSearchScope.FullImage || isExternalScreenshot || _currentCropRegion == null)
+        if (searchScope == MatchSearchScope.FullImage)
+        {
+            return null;
+        }
+
+        var manualRegion = ParseOptionalRegion(MatchSearchRegionTextBox?.Text);
+        if (manualRegion != null)
+        {
+            return manualRegion;
+        }
+
+        if (isExternalScreenshot || _currentCropRegion == null)
         {
             return null;
         }
